@@ -28,14 +28,58 @@ const data = {
     ],
 };
 
+app.use(express.json());
+
 app.get("/api/persons/", (request, response) => {
     response.json(data.persons);
+});
+
+app.post("/api/persons", (request, response, next) => {
+    const requestData = request.body;
+    console.log(requestData);
+
+    if (!requestData.name || !requestData.number) {
+        const errorbody = { error: "request is missin name or number" };
+        response.status(400).json(errorbody);
+    }
+
+    const existingPerson = data.persons.find((person) => {
+        return person.name === requestData.name;
+    });
+
+    if (existingPerson) {
+        const errorbody = { error: `A number with the name ${requestData.name} already exists` };
+        response.status(400).json(errorbody);
+    } else {
+        const newPerson = { ...requestData, id: Math.floor(Math.random() * 10000) };
+        data.persons = data.persons.concat(newPerson);
+        response.status(200).send();
+    }
 });
 
 app.get("/api/persons/:id", (request, response) => {
     const personId = parseInt(request.params.id);
     const person = data.persons.find((person) => person.id === personId);
     response.json(person);
+});
+
+app.delete("/api/persons/:id", (request, response) => {
+    const personId = parseInt(request.params.id);
+    const personExists = data.persons.find((person) => {
+        return person.id === personId;
+    });
+
+    if (personExists) {
+        data.persons = data.persons.filter((person) => {
+            return person.id !== personId;
+        });
+        response.status(200).send();
+    } else {
+        const errorBody = {
+            error: "Person does not exist",
+        };
+        response.status(400).json(errorBody);
+    }
 });
 
 app.get("/info", (request, response) => {
