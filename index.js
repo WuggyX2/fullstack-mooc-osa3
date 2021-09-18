@@ -1,7 +1,8 @@
 const express = require("express");
 const app = express();
+const cors = require("cors");
 
-const PORT = 3001;
+const PORT = process.env.PORT || 3000;
 
 const data = {
     persons: [
@@ -27,6 +28,8 @@ const data = {
         },
     ],
 };
+
+app.use(cors());
 
 app.use(express.json());
 
@@ -87,5 +90,5 @@ app.get("/info", (request, response) => {
 });
 
 app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+    console.log(`Our app is running on port ${PORT}`);
 });
