@@ -1,8 +1,9 @@
 const express = require("express");
 const app = express();
+const path = require("path");
 const cors = require("cors");
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
 
 const data = {
     persons: [
@@ -30,8 +31,8 @@ const data = {
 };
 
 app.use(cors());
-
 app.use(express.json());
+app.use(express.static(path.resolve(__dirname, "../react-ui/build")));
 
 app.get("/api/persons/", (request, response) => {
     response.json(data.persons);
@@ -56,7 +57,7 @@ app.post("/api/persons", (request, response, next) => {
     } else {
         const newPerson = { ...requestData, id: Math.floor(Math.random() * 10000) };
         data.persons = data.persons.concat(newPerson);
-        response.status(200).send();
+        response.json(newPerson);
     }
 });
 
