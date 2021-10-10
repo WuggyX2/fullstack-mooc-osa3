@@ -1,93 +1,104 @@
+require("dotenv").config();
 const express = require("express");
 const app = express();
 const path = require("path");
 const cors = require("cors");
+const Person = require("./models/person");
 
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT;
 
-const data = {
-    persons: [
-        {
-            name: "Arto Hellas",
-            number: "040-123456",
-            id: 1,
-        },
-        {
-            name: "Ada Lovelace",
-            number: "39-44-5323523",
-            id: 2,
-        },
-        {
-            name: "Dan Abramov",
-            number: "12-43-234345",
-            id: 3,
-        },
-        {
-            name: "Mary Poppendieck",
-            number: "39-23-6423122",
-            id: 4,
-        },
-    ],
+const errorHandler = (error, request, response, next) => {
+    console.error(error.message);
+
+    if (error.name === "CastError") {
+        return response.status(400).send({ error: "malformatted id" });
+    }
+
+    next(error);
 };
 
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.resolve(__dirname, "../react-ui/build")));
+app.use(errorHandler);
 
 app.get("/api/persons/", (request, response) => {
-    response.json(data.persons);
+    Person.find({}).then((results) => {
+        response.json(results);
+    });
 });
 
 app.post("/api/persons", (request, response, next) => {
     const requestData = request.body;
-    console.log(requestData);
 
     if (!requestData.name || !requestData.number) {
-        const errorbody = { error: "request is missin name or number" };
+        const errorbody = { error: "request is missing name or number" };
         response.status(400).json(errorbody);
     }
 
-    const existingPerson = data.persons.find((person) => {
-        return person.name === requestData.name;
+    const newPerson = new Person({ ...requestData });
+    newPerson.save().then((savedPerson) => {
+        response.json(savedPerson);
     });
+});
 
-    if (existingPerson) {
-        const errorbody = { error: `A number with the name ${requestData.name} already exists` };
+app.put("/api/persons/:id", (request, response, next) => {
+    const requestData = request.body;
+
+    if (!requestData.name || !requestData.number) {
+        const errorbody = { error: "request is missing name or number" };
         response.status(400).json(errorbody);
-    } else {
-        const newPerson = { ...requestData, id: Math.floor(Math.random() * 10000) };
-        data.persons = data.persons.concat(newPerson);
-        response.json(newPerson);
     }
-});
 
-app.get("/api/persons/:id", (request, response) => {
-    const personId = parseInt(request.params.id);
-    const person = data.persons.find((person) => person.id === personId);
-    response.json(person);
-});
+    const newPersonData = {
+        number: requestData.number,
+        name: requestData.name,
+    };
 
-app.delete("/api/persons/:id", (request, response) => {
-    const personId = parseInt(request.params.id);
-    const personExists = data.persons.find((person) => {
-        return person.id === personId;
-    });
-
-    if (personExists) {
-        data.persons = data.persons.filter((person) => {
-            return person.id !== personId;
+    Person.findByIdAndUpdate(request.params.id, newPersonData, { new: true })
+        .then((updatedPerson) => {
+            response.json(updatedPerson);
+        })
+        .catch((error) => {
+            next(error);
         });
-        response.status(200).send();
-    } else {
-        const errorBody = {
-            error: "Person does not exist",
-        };
-        response.status(400).json(errorBody);
-    }
+});
+
+app.get("/api/persons/:id", (request, response, next) => {
+    Person.findById(request.params.id)
+        .then((result) => {
+            if (result) {
+                response.json(result);
+            } else {
+                response.status(404).end();
+            }
+        })
+        .catch((error) => {
+            next(error);
+        });
+});
+
+app.delete("/api/persons/:id", (request, response, next) => {
+    Person.findByIdAndRemove(request.params.id)
+        .then((result) => {
+            if (result) {
+                response.status(200).end();
+            } else {
+                const errorBody = {
+                    error: "Person does not exist",
+                };
+                response.status(400).json(errorBody);
+            }
+        })
+        .catch((error) => {
+            next(error);
+        });
 });
 
 app.get("/info", (request, response) => {
-    response.send(`<p>Phonebook has info for ${data.persons.length} people</p> <p>${new Date()}</p>`);
+    Person.find({}).then((results) => {
+        response.send(`<p>Phonebook has info for ${results.length} people</p> <p>${new Date()}</p>`);
+    });
 });
 
 app.listen(PORT, () => {

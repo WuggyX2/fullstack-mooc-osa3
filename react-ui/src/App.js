@@ -35,7 +35,6 @@ const App = () => {
             personService
                 .createPerson(newPerson)
                 .then((response) => {
-                    console.log(response);
                     setPersons(persons.concat(response));
                     showMessage({ message: `Added ${response.name}`, type: "success" });
                 })
@@ -93,7 +92,7 @@ const App = () => {
     };
 
     const handleDeleteClick = (event) => {
-        const numberId = parseInt(event.target.dataset.id);
+        const numberId = event.target.dataset.id;
         const confirmResponse = window.confirm(`Delete ${event.target.dataset.name}?`);
         if (confirmResponse) {
             personService
@@ -107,7 +106,7 @@ const App = () => {
                 })
                 .catch((error) => {
                     showMessage({
-                        message: `Delete Operation failed: ${event.target.dataset.name} was already removed`,
+                        message: `Error: ${error}`,
                         type: "error",
                     });
                 });
