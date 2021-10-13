@@ -40,7 +40,7 @@ const App = () => {
                 })
                 .catch((error) => {
                     showMessage({
-                        message: `Add Operation failed: ${error.message}`,
+                        message: error.response.data.error,
                         type: "error",
                     });
                 });

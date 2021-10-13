@@ -7,20 +7,26 @@ const Person = require("./models/person");
 
 const PORT = process.env.PORT;
 
-const errorHandler = (error, request, response, next) => {
-    console.error(error.message);
+app.use(cors());
+app.use(express.json());
+app.use(express.static(path.resolve(__dirname, "../react-ui/build")));
 
+const errorHandler = (error, request, response, next) => {
+    console.log("moi");
+    console.log(error.message);
     if (error.name === "CastError") {
         return response.status(400).send({ error: "malformatted id" });
     }
 
+    if (error.name === "ValidationError") {
+        if (error.errors["name"].kind === "unique") {
+            return response.status(400).send({ error: `A person with the name ${error.name} already exists` });
+        }
+        return response.status(400).send({ error: error.message });
+    }
+
     next(error);
 };
-
-app.use(cors());
-app.use(express.json());
-app.use(express.static(path.resolve(__dirname, "../react-ui/build")));
-app.use(errorHandler);
 
 app.get("/api/persons/", (request, response) => {
     Person.find({}).then((results) => {
@@ -37,9 +43,14 @@ app.post("/api/persons", (request, response, next) => {
     }
 
     const newPerson = new Person({ ...requestData });
-    newPerson.save().then((savedPerson) => {
-        response.json(savedPerson);
-    });
+    newPerson
+        .save()
+        .then((savedPerson) => {
+            response.json(savedPerson);
+        })
+        .catch((error) => {
+            next(error);
+        });
 });
 
 app.put("/api/persons/:id", (request, response, next) => {
@@ -100,6 +111,8 @@ app.get("/info", (request, response) => {
         response.send(`<p>Phonebook has info for ${results.length} people</p> <p>${new Date()}</p>`);
     });
 });
+
+app.use(errorHandler);
 
 app.listen(PORT, () => {
     console.log(`Our app is running on port ${PORT}`);
